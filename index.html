@@ -1,14 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WEBRTC communcation</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peer-to-Peer Messaging</title>
 </head>
 <body>
-    <h1>If you're party A click:</h1>
-    <a href="partya.html">Go to party-a</a>
-    <h1>If you're party B click:</h1>
-    <a href="partyb.html">Go to party-b</a>
+  <h1>Peer-to-Peer Messaging</h1>
+  <div>
+    <label for="partyAId">Your ID:</label>
+    <input type="text" id="partyAId">
+    <label for="partyBId">Other Party's ID:</label>
+    <input type="text" id="partyBId">
+  </div>
+  <div>
+    <h2>Incoming Messages</h2>
+    <ul id="incomingMessages"></ul>
+  </div>
+  <div>
+    <label for="message">Message:</label>
+    <input type="text" id="message">
+    <button onclick="sendMessage()">Send</button>
+  </div>
+  <div>
+    <h2>Outgoing Messages</h2>
+    <ul id="outgoingMessages"></ul>
+  </div>
+
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script>
+    var peer = new Peer();
+    var partyAIdInput = document.getElementById('partyAId');
+    var partyBIdInput = document.getElementById('partyBId');
+    var incomingMessagesList = document.getElementById('incomingMessages');
+    var outgoingMessagesList = document.getElementById('outgoingMessages');
+
+    peer.on('open', function(id) {
+      partyAIdInput.value = id;
+      console.log('Your ID:', id);
+    });
+
+    function sendMessage() {
+      var messageInput = document.getElementById('message');
+      var message = messageInput.value;
+      var conn = peer.connect(partyBIdInput.value);
+      conn.on('open', function(){
+        conn.send(message);
+        appendOutgoingMessage(message);
+      });
+      messageInput.value = '';
+    }
+
+    peer.on('connection', function(conn) {
+      conn.on('data', function(data){
+        appendIncomingMessage(data);
+      });
+    });
+
+    function appendIncomingMessage(message) {
+      var time = new Date().toLocaleTimeString();
+      var li = document.createElement('li');
+      li.innerHTML = '<strong>From Party B:</strong> ' + message + ' <span>(' + time + ')</span>';
+      incomingMessagesList.appendChild(li);
+      alert('Message from Party B: ' + message);
+    }
+
+    function appendOutgoingMessage(message) {
+      var time = new Date().toLocaleTimeString();
+      var li = document.createElement('li');
+      li.innerHTML = '<strong>To Party B:</strong> ' + message + ' <span>(' + time + ')</span>';
+      outgoingMessagesList.appendChild(li);
+    }
+  </script>
 </body>
 </html>
