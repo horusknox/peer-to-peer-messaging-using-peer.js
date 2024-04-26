@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Party A</title>
+</head>
+<body>
+  <h1>Party A</h1>
+  <div>
+    <label for="partyBId">Party B ID:</label>
+    <input type="text" id="partyBId">
+    <p><strong>Your ID:</strong> <span id="partyAId"></span></p>
+  </div>
+  <div>
+    <label for="message">Message:</label>
+    <input type="text" id="message">
+    <button onclick="sendMessage()">Send</button>
+  </div>
+  <div>
+    <h2>Incoming Messages</h2>
+    <ul id="incomingMessages"></ul>
+  </div>
+  <div>
+    <h2>Outgoing Messages</h2>
+    <ul id="outgoingMessages"></ul>
+  </div>
+
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script>
+    var peer = new Peer();
+    var partyBIdInput = document.getElementById('partyBId');
+    var partyAId = document.getElementById('partyAId');
+    var incomingMessagesList = document.getElementById('incomingMessages');
+    var outgoingMessagesList = document.getElementById('outgoingMessages');
+
+    peer.on('open', function(id) {
+      partyAId.textContent = id;
+      console.log('Party A ID:', id);
+    });
+
+    function sendMessage() {
+      var messageInput = document.getElementById('message');
+      var message = messageInput.value;
+      var conn = peer.connect(partyBIdInput.value);
+      conn.on('open', function(){
+        conn.send(message);
+        appendOutgoingMessage(message);
+      });
+      messageInput.value = '';
+    }
+
+    peer.on('connection', function(conn) {
+      conn.on('data', function(data){
+        appendIncomingMessage(data);
+      });
+    });
+
+    function appendIncomingMessage(message) {
+      var time = new Date().toLocaleTimeString();
+      var li = document.createElement('li');
+      li.innerHTML = '<strong>Party B:</strong> ' + message + ' <span>(' + time + ')</span>';
+      incomingMessagesList.appendChild(li);
+      alert('Message from Party B: ' + message);
+    }
+
+    function appendOutgoingMessage(message) {
+      var time = new Date().toLocaleTimeString();
+      var li = document.createElement('li');
+      li.innerHTML = '<strong>You:</strong> ' + message + ' <span>(' + time + ')</span>';
+      outgoingMessagesList.appendChild(li);
+    }
+  </script>
+</body>
+</html>
