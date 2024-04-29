@@ -1,0 +1,102 @@
+import React, { useState, useEffect } from 'react';
+import Peer from 'peerjs';
+
+const generateRandomId = (length) => {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+}
+
+const PeerToPeerMessaging = () => {
+  const [peer, setPeer] = useState(null);
+  const [partyAId, setPartyAId] = useState('');
+  const [partyBId, setPartyBId] = useState('');
+  const [incomingMessages, setIncomingMessages] = useState([]);
+  const [outgoingMessages, setOutgoingMessages] = useState([]);
+  const [message, setMessage] = useState('');
+  const [ourRandomId, setOurRandomId] = useState('');
+
+  useEffect(() => {
+    setOurRandomId(generateRandomId(5));
+  }, []);
+
+  useEffect(() => {
+    if (!ourRandomId) return;
+
+    const newPeer = new Peer(ourRandomId);
+    setPeer(newPeer);
+    
+    newPeer.on('open', (id) => {
+      setPartyAId(id);
+      console.log('Your ID:', id);
+    });
+
+    newPeer.on('connection', (conn) => {
+      conn.on('data', (data) => {
+        appendIncomingMessage(data);
+      });
+    });
+
+    return () => {
+      newPeer.destroy();
+    };
+  }, [ourRandomId]);
+
+  const sendMessage = () => {
+    if (!peer) return;
+    const conn = peer.connect(partyBId);
+    conn.on('open', () => {
+      conn.send(message);
+      appendOutgoingMessage(message);
+    });
+    setMessage('');
+  }
+
+  const appendIncomingMessage = (message) => {
+    const time = new Date().toLocaleTimeString();
+    setIncomingMessages(prevMessages => [...prevMessages, { text: message, time }]);
+    alert('Message from Party B: ' + message);
+  }
+
+  const appendOutgoingMessage = (message) => {
+    const time = new Date().toLocaleTimeString();
+    setOutgoingMessages(prevMessages => [...prevMessages, { text: message, time }]);
+  }
+
+  return (
+    <div>
+      <h1>Peer-to-Peer Messaging</h1>
+      <h4>Enter this in the other Device: <strong id='ourId'>{ourRandomId}</strong> </h4>
+      <div>
+        <label htmlFor="partyBId">Other Party's ID:</label>
+        <input type="text" id="partyBId" value={partyBId} onChange={(e) => setPartyBId(e.target.value)} />
+      </div>
+      <div>
+        <h2>Incoming Messages</h2>
+        <ul className="message-list">
+          {incomingMessages.map((msg, index) => (
+            <li key={index}><strong>From Party B:</strong> {msg.text} <span>({msg.time})</span></li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <label htmlFor="message">Message:</label>
+        <input type="text" id="message" value={message} onChange={(e) => setMessage(e.target.value)} />
+        <button onClick={sendMessage}>Send</button>
+      </div>
+      <div>
+        <h2>Outgoing Messages</h2>
+        <ul className="message-list">
+          {outgoingMessages.map((msg, index) => (
+            <li key={index}><strong>To Party B:</strong> {msg.text} <span>({msg.time})</span></li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+export default PeerToPeerMessaging;
