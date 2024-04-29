@@ -10,6 +10,7 @@
     background-color: #f4f4f4;
     margin: 0;
     padding: 20px;
+    transition: background-color 0.5s ease;
   }
 
   #container {
@@ -45,6 +46,7 @@
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    margin-left: 10px;
   }
 
   button:hover {
@@ -69,6 +71,11 @@
   #outgoingMessages li {
     background-color: #d9edf7;
   }
+
+  .speech-btn {
+    margin-top: 10px;
+  }
+
 </style>
 </head>
 <body>
@@ -85,7 +92,9 @@
     </div>
     <div>
       <label for="message">Message:</label>
-      <input type="text" id="message">
+      <input type="text" id="message" placeholder="Speak your message">
+      <button id="startSpeechBtn" class="speech-btn">Start Listening</button>
+      <button id="stopSpeechBtn" class="speech-btn" style="display: none;">Stop Listening</button>
       <button onclick="sendMessage()">Send</button>
     </div>
     <div>
@@ -94,7 +103,7 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js" onerror="console.error('Failed to load PeerJS library')"></script>
   <script>
     function generateRandomId() {
       var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
@@ -111,6 +120,7 @@
     var partyBIdInput = document.getElementById('partyBId');
     var incomingMessagesList = document.getElementById('incomingMessages');
     var outgoingMessagesList = document.getElementById('outgoingMessages');
+    var recognition;
 
     peer.on('open', function(id) {
       partyAIdSpan.textContent = id;
@@ -131,6 +141,7 @@
     peer.on('connection', function(conn) {
       conn.on('data', function(data){
         appendIncomingMessage(data);
+        changeBackgroundColor(data);
       });
     });
 
@@ -139,7 +150,7 @@
       var li = document.createElement('li');
       li.innerHTML = '<strong>From Party B:</strong> ' + message + ' <span>(' + time + ')</span>';
       incomingMessagesList.appendChild(li);
-      alert('Message from Party B: ' + message);
+      speakMessage(message);
     }
 
     function appendOutgoingMessage(message) {
@@ -147,6 +158,55 @@
       var li = document.createElement('li');
       li.innerHTML = '<strong>To Party B:</strong> ' + message + ' <span>(' + time + ')</span>';
       outgoingMessagesList.appendChild(li);
+    }
+
+    function speakMessage(message) {
+      var msg = new SpeechSynthesisUtterance(message);
+      window.speechSynthesis.speak(msg);
+    }
+
+    document.getElementById('startSpeechBtn').addEventListener('click', function() {
+      startSpeechRecognition();
+    });
+
+    document.getElementById('stopSpeechBtn').addEventListener('click', function() {
+      stopSpeechRecognition();
+    });
+
+    function startSpeechRecognition() {
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = function(event) {
+        var speechToText = event.results[0][0].transcript;
+        document.getElementById('message').value = speechToText;
+      }
+
+      recognition.onend = function() {
+        document.getElementById('startSpeechBtn').style.display = 'inline-block';
+        document.getElementById('stopSpeechBtn').style.display = 'none';
+      }
+
+      recognition.start();
+      document.getElementById('startSpeechBtn').style.display = 'none';
+      document.getElementById('stopSpeechBtn').style.display = 'inline-block';
+    }
+
+    function stopSpeechRecognition() {
+      if (recognition) {
+        recognition.stop();
+      }
+    }
+
+    function changeBackgroundColor(message) {
+      var colorRegex = /#(?:[0-9a-fA-F]{3}){1,2}\b/;
+      var match = message.match(colorRegex);
+      if (match) {
+        document.body.style.backgroundColor = match[0];
+      }
     }
   </script>
 </body>
